@@ -1,7 +1,7 @@
 /**
- * version:1.6.0
- * updatetime:2020-3-24
- * new：定义removeKey（禁用/移除光标元素） addKey方法（启用/添加光标元素） 修复focusMove方法的bug
+ * version:1.7.0
+ * updatetime:2020-4-14
+ * new：定义addOtherKey（恢复元素聚焦） removeOtherKey（禁用除目标外的其他元素的聚焦能力） refresh：刷新面板...
  */
 // `use strict`;
 //console.log('*************************自定义光标逻辑启用*************************');
@@ -22,10 +22,11 @@ function getH5DownKey() {
         window.onload = function () {
             if (document.getElementById("debug")) {
                 //console.log('光标控制权',focusController);
-                var debugString = getDebugString(this.lastFoucusObject, this.focusObject);
-                document.getElementById("debug").innerHTML = debugString;
+                // var debugString = getDebugString(this.lastFoucusObject, this.focusObject);
+                // document.getElementById("debug").innerHTML = debugString;
+                keyfocus.refresh();
             }
-        }
+        };
 
         //console.log(focusController);
 
@@ -155,7 +156,7 @@ Object.prototype.toString = function () {
         objString += (objCount === thisLength) ? (key + ": " + this[key]) : (key + ": " + this[key] + ", ");
     }
     return "{" + objString + "}";
-}
+};
 
 function getStyle(node, styleType) {
     //浏览器中有node.currentStyle方法就用，没有就用另一个
@@ -185,7 +186,7 @@ function timedAjax(url, time, callback, method) {
         if (request.status === 200) {
             callback(request.responseText);
         }
-    }
+    };
     request.send(null);
 }
 
@@ -236,7 +237,7 @@ KeyFocus.prototype = {
                         //中兴盒子的解决方式
                         focusEle.style.setProperty('-webkit-tap-highlight-color', 'rgba(0,0,0,0)');
                     }
-                    (addTabIndex === undefined || addTabIndex) && focusEle.setAttribute('tabindex', 0);
+                    (addTabIndex === undefined || addTabIndex) && focusEle.setAttribute('tabindex', "0");
                 }
             }
         }
@@ -326,6 +327,49 @@ KeyFocus.prototype = {
         this.monitorKeyboard = this.lastMonitorKeyboard;
     },
     /**
+     *@method 除某个元素外的其他元素都禁止聚焦（避免某个盒子重定向后，光标依然可以走到别的元素）
+     *@for KeyFocus
+     *@param{*} isAllowFocus 唯一允许被聚焦的元素
+     */
+    removeOtherKey:function(isAllowFocus){
+        console.log('光标逻辑--------',this.monitorKeyboard);
+        console.log('允许忽略的元素---',isAllowFocus);
+        for(var item in this.monitorKeyboard){
+            if(this.monitorKeyboard.hasOwnProperty(item)){
+                console.log('禁用------遍历到自己的光标元素', document.getElementById(item));
+                document.getElementById(item).removeAttribute("tabindex");
+            }
+        }
+        document.getElementById(isAllowFocus).setAttribute("tabindex","0");
+    },
+    /**
+     *@method 恢复元素重新聚焦的能力
+     *@for KeyFocus
+     */
+    addOtherKey:function(){
+        console.log('光标逻辑--------',this.monitorKeyboard);
+        for(var item in this.monitorKeyboard){
+            if(this.monitorKeyboard.hasOwnProperty(item)){
+                console.log('启用------遍历到自己的光标元素', document.getElementById(item));
+                document.getElementById(item).setAttribute("tabindex","0");
+            }
+        }
+    },
+    /**
+     *@method 刷新调试面板
+     *@for KeyFocus
+     */
+    refresh:function(info){
+        console.log('刷新显示面板');
+        if (document.getElementById("debug")) {
+            //console.log('光标控制权',focusController);
+            var debugString = info ? getDebugString(this.lastFoucusObject, this.focusObject,info):getDebugString(this.lastFoucusObject, this.focusObject);
+            document.getElementById("debug").innerHTML = debugString;
+        } else {
+            console.log('err：应先打开调试面板')
+        }
+    },
+    /**
      *@method 重定向当前的光标元素
      *@for KeyFocus
      *@param{*} target 光标重定向到的元素id    notAllowRedirect:不执行重定向操作的元素
@@ -343,6 +387,8 @@ KeyFocus.prototype = {
         }
         this.focusObject = target;
         document.getElementById(target).focus();
+        //如果打开了调试面板则刷新调试面板
+        this.refresh();
     },
     /**
      *@method 按指定方向执行光标跳转
@@ -413,10 +459,11 @@ KeyFocus.prototype = {
             }
         }
         //若开启调试模式，则实时更新debugString
-        if (document.getElementById("debug")) {
-            var debugString = getDebugString(this.lastFoucusObject, this.focusObject);
-            document.getElementById("debug").innerHTML = debugString;
-        }
+        // if (document.getElementById("debug")) {
+        //     var debugString = getDebugString(this.lastFoucusObject, this.focusObject);
+        //     document.getElementById("debug").innerHTML = debugString;
+        // }
+        this.refresh();
     },
 
     /**
@@ -425,6 +472,11 @@ KeyFocus.prototype = {
      *@param{*} bgColor 调试面板的背景色    opacity:调试面板的透明度
      */
     openDebug: function (bgColor, opacity) {
+        //printLogByPage可能先于openDebug调用
+        if(document.getElementById("debug")){
+            console.log("调试面板已经打开！");
+            return;
+        }
         bgColor = bgColor || 'black';
         opacity = opacity || 0.6;
         var fontSize = screenWidth > 700 ? '20px' : '14px';
@@ -492,13 +544,16 @@ KeyFocus.prototype = {
      *@param{*} info：要打印的信息
      */
     printLogByPage: function (info) {
-        if (document.getElementById("debug")) {
-            //console.log('光标控制权',focusController);
-            var debugString = getDebugString(this.lastFoucusObject, this.focusObject, info);
-            document.getElementById("debug").innerHTML = debugString;
-        } else {
-            console.log('err：应先打开调试面板')
-        }
+        // if (document.getElementById("debug")) {
+        //     //console.log('光标控制权',focusController);
+        //     var debugString = getDebugString(this.lastFoucusObject, this.focusObject, info);
+        //     document.getElementById("debug").innerHTML = debugString;
+        // } else {
+        //     console.log('err：应先打开调试面板')
+        // }
+        //调用时自动打开调试面板
+        this.openDebug();
+        this.refresh(info);
     },
     /**
      *@method 控制台（后端）打印日志信息
