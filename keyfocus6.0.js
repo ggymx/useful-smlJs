@@ -1,7 +1,7 @@
 /**
- * version:1.7.0
- * updatetime:2020-4-14
- * new：定义addOtherKey（恢复元素聚焦） removeOtherKey（禁用除目标外的其他元素的聚焦能力） refresh：刷新面板...
+ * version:1.6.0
+ * updatetime:2020-3-24
+ * new：定义removeKey（禁用/移除光标元素） addKey方法（启用/添加光标元素） 修复focusMove方法的bug
  */
 // `use strict`;
 //console.log('*************************自定义光标逻辑启用*************************');
@@ -488,7 +488,7 @@ KeyFocus.prototype = {
         // body.innerHTML += '<div id="debug" style="background: black;opacity: 0.6;width: 600px;position: fixed;top: 0;' +
         //     'color: #FFF;border-radius: 10px;padding-left:10px;font-size: 20px;">' + getDebugString(this.lastFoucusObject, this.focusObject) +
         //     '</div>';
-        document.getElementById(this.focusObject).focus();
+        this.focusObject && document.getElementById(this.focusObject).focus();
     },
 
     //重定向自己
@@ -552,7 +552,7 @@ KeyFocus.prototype = {
         //     console.log('err：应先打开调试面板')
         // }
         //调用时自动打开调试面板
-        this.openDebug();
+        // this.openDebug();
         this.refresh(info);
     },
     /**
